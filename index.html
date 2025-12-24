@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>函数绘图工具 - 类似Desmos</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入Math.js库用于表达式解析 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.6.0/math.min.js"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-line"></i> 函数绘图工具</h1>
+            <p class="subtitle">类似Desmos的交互式函数绘图器</p>
+        </header>
+
+        <div class="app-content">
+            <div class="sidebar">
+                <div class="functions-list">
+                    <h2><i class="fas fa-functions"></i> 函数列表</h2>
+                    <div class="function-controls">
+                        <button id="addFunctionBtn" class="btn-primary">
+                            <i class="fas fa-plus-circle"></i> 添加函数
+                        </button>
+                        <button id="clearAllBtn" class="btn-secondary">
+                            <i class="fas fa-trash-alt"></i> 清除所有
+                        </button>
+                    </div>
+                    <div id="functionsContainer" class="functions-container">
+                        <!-- 函数项将在这里动态添加 -->
+                        <div class="function-item empty-state">
+                            <p>点击"添加函数"开始绘图</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="instructions">
+                    <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+                    <ul>
+                        <li>输入数学表达式，例如: <code>2*x + 3</code></li>
+                        <li>支持函数: sin, cos, tan, log, sqrt, abs 等</li>
+                        <li>支持运算符: +, -, *, /, ^, !, %</li>
+                        <li>支持常数: pi, e</li>
+                        <li>示例: <code>sin(x)^2 + cos(x)^2</code></li>
+                        <li>点击颜色方块可以自定义函数颜色</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="graph-controls">
+                    <div class="control-group">
+                        <label for="xMin">X 最小值:</label>
+                        <input type="number" id="xMin" value="-10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="xMax">X 最大值:</label>
+                        <input type="number" id="xMax" value="10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="yMin">Y 最小值:</label>
+                        <input type="number" id="yMin" value="-10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="yMax">Y 最大值:</label>
+                        <input type="number" id="yMax" value="10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <button id="resetViewBtn" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i> 重置视图
+                        </button>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="graphCanvas" width="800" height="600"></canvas>
+                    <div class="canvas-overlay" id="coordinates">(0, 0)</div>
+                </div>
+
+                <div class="export-controls">
+                    <button id="exportBtn" class="btn-primary">
+                        <i class="fas fa-download"></i> 保存图像
+                    </button>
+                    <div class="export-options">
+                        <label for="imageFormat">格式:</label>
+                        <select id="imageFormat">
+                            <option value="png">PNG</option>
+                            <option value="jpeg">JPEG</option>
+                        </select>
+                        <label for="imageScale">缩放:</label>
+                        <select id="imageScale">
+                            <option value="1">1x</option>
+                            <option value="2">2x</option>
+                            <option value="3">3x</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>函数绘图工具 &copy; 2023 | 支持代数式、三角函数、绝对值、幂运算、根号、阶乘等</p>
+        </footer>
+    </div>
+
+    <!-- 颜色选择器模态框 -->
+    <div id="colorPickerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择颜色</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="color-palette">
+                    <div class="color-option" style="background-color: #FF3B30;" data-color="#FF3B30"></div>
+                    <div class="color-option" style="background-color: #4CD964;" data-color="#4CD964"></div>
+                    <div class="color-option" style="background-color: #007AFF;" data-color="#007AFF"></div>
+                    <div class="color-option" style="background-color: #5856D6;" data-color="#5856D6"></div>
+                    <div class="color-option" style="background-color: #FF9500;" data-color="#FF9500"></div>
+                    <div class="color-option" style="background-color: #FF2D55;" data-color="#FF2D55"></div>
+                    <div class="color-option" style="background-color: #8E8E93;" data-color="#8E8E93"></div>
+                    <div class="color-option" style="background-color: #5AC8FA;" data-color="#5AC8FA"></div>
+                </div>
+                <div class="custom-color">
+                    <label for="customColorInput">自定义颜色:</label>
+                    <input type="color" id="customColorInput" value="#FF3B30">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmColorBtn" class="btn-primary">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
