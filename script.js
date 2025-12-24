@@ -20,6 +20,12 @@ const GraphApp = {
         this.yMin = -10;
         this.yMax = 10;
         
+        // 缩放相关变量
+        this.zoomFactor = 1.0;
+        this.zoomStep = 0.1;
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+        
         // 设置初始输入值
         document.getElementById('xMin').value = this.xMin;
         document.getElementById('xMax').value = this.xMax;
@@ -31,9 +37,6 @@ const GraphApp = {
         
         // 绘制初始图形
         this.drawGraph();
-        
-        // 添加示例函数
-        this.addExampleFunctions();
     },
     
     // 绑定事件监听器
@@ -46,6 +49,11 @@ const GraphApp = {
         // 清除所有按钮
         document.getElementById('clearAllBtn').addEventListener('click', () => {
             this.clearAllFunctions();
+        });
+        
+        // 使用说明按钮
+        document.getElementById('helpBtn').addEventListener('click', () => {
+            this.showHelp();
         });
         
         // 重置视图按钮
@@ -82,6 +90,27 @@ const GraphApp = {
         // 画布鼠标移动事件
         this.canvas.addEventListener('mousemove', (e) => {
             this.updateCoordinates(e);
+            this.lastMouseX = e.offsetX;
+            this.lastMouseY = e.offsetY;
+        });
+        
+        // 画布鼠标滚轮缩放事件
+        this.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            this.handleZoom(e);
+        });
+        
+        // 缩放按钮事件
+        document.getElementById('zoomInBtn').addEventListener('click', () => {
+            this.zoomAtCenter(1 + this.zoomStep);
+        });
+        
+        document.getElementById('zoomOutBtn').addEventListener('click', () => {
+            this.zoomAtCenter(1 - this.zoomStep);
+        });
+        
+        document.getElementById('resetZoomBtn').addEventListener('click', () => {
+            this.resetZoom();
         });
         
         // 颜色选择器相关事件
@@ -108,18 +137,29 @@ const GraphApp = {
                     this.drawGraph();
                 }
             }
-            this.hideColorPicker();
+            this.hideModal('colorPickerModal');
         });
         
-        document.querySelector('.close-modal').addEventListener('click', () => {
-            this.hideColorPicker();
+        // 使用说明模态框事件
+        document.getElementById('closeHelpBtn').addEventListener('click', () => {
+            this.hideModal('helpModal');
+        });
+        
+        // 模态框关闭按钮事件
+        document.querySelectorAll('.close-modal').forEach(closeBtn => {
+            closeBtn.addEventListener('click', (e) => {
+                const modalId = e.target.closest('.modal').id;
+                this.hideModal(modalId);
+            });
         });
         
         // 点击模态框外部关闭
-        document.getElementById('colorPickerModal').addEventListener('click', (e) => {
-            if (e.target.id === 'colorPickerModal') {
-                this.hideColorPicker();
-            }
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideModal(modal.id);
+                }
+            });
         });
     },
     
@@ -132,11 +172,15 @@ const GraphApp = {
             id: funcId,
             expression: expression,
             color: funcColor,
-            enabled: true
+            enabled: true,
+            error: null
         };
         
         this.functions.push(newFunction);
         this.renderFunctionItem(newFunction);
+        
+        // 验证表达式
+        this.validateFunctionExpression(funcId);
         this.drawGraph();
         
         // 如果有空状态提示，移除它
@@ -146,20 +190,6 @@ const GraphApp = {
         }
         
         return funcId;
-    },
-    
-    // 添加示例函数
-    addExampleFunctions: function() {
-        const examples = [
-            { expr: 'x^2', color: '#FF3B30' },
-            { expr: 'sin(x)', color: '#4CD964' },
-            { expr: '2*x + 3', color: '#007AFF' },
-            { expr: 'sqrt(x)', color: '#5856D6' }
-        ];
-        
-        examples.forEach(example => {
-            this.addFunction(example.expr, example.color);
-        });
     },
     
     // 渲染函数项
@@ -172,7 +202,10 @@ const GraphApp = {
                 <span class="function-label">f<sub>${func.id}</sub>(x) =</span>
                 <div class="function-color" style="background-color: ${func.color};" data-func-id="${func.id}"></div>
             </div>
-            <input type="text" class="function-expression" value="${func.expression}" placeholder="输入函数表达式..." data-func-id="${func.id}">
+            <div class="function-input-container">
+                <input type="text" class="function-expression" value="${func.expression}" placeholder="输入函数表达式..." data-func-id="${func.id}">
+                <div class="error-message">${func.error || ''}</div>
+            </div>
             <div class="function-actions">
                 <button class="btn-toggle" data-func-id="${func.id}">
                     <i class="fas ${func.enabled ? 'fa-eye' : 'fa-eye-slash'}"></i>
@@ -201,6 +234,17 @@ const GraphApp = {
             this.updateFunctionExpression(func.id, e.target.value);
         });
         
+        // 添加防抖，避免频繁重绘
+        expressionInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                this.updateFunctionExpression(func.id, e.target.value);
+            }
+        });
+        
+        expressionInput.addEventListener('blur', (e) => {
+            this.updateFunctionExpression(func.id, e.target.value);
+        });
+        
         toggleBtn.addEventListener('click', () => {
             this.toggleFunction(func.id);
         });
@@ -210,12 +254,81 @@ const GraphApp = {
         });
     },
     
+    // 验证函数表达式
+    validateFunctionExpression: function(funcId) {
+        const func = this.functions.find(f => f.id === funcId);
+        if (!func) return false;
+        
+        // 清空之前的错误
+        func.error = null;
+        const expressionInput = document.querySelector(`#func-${funcId} .function-expression`);
+        const errorElement = document.querySelector(`#func-${funcId} .error-message`);
+        
+        if (expressionInput) {
+            expressionInput.classList.remove('error');
+        }
+        
+        if (errorElement) {
+            errorElement.textContent = '';
+        }
+        
+        // 如果表达式为空，不需要验证
+        if (!func.expression.trim()) {
+            return true;
+        }
+        
+        try {
+            // 测试表达式是否有效
+            const testExpr = func.expression.replace(/x/g, '(0)');
+            math.evaluate(testExpr);
+            
+            // 再测试一个随机值
+            const randomX = Math.random() * 10 - 5;
+            const randomExpr = func.expression.replace(/x/g, `(${randomX})`);
+            math.evaluate(randomExpr);
+            
+            return true;
+        } catch (error) {
+            // 提取错误信息
+            let errorMsg = '表达式错误';
+            if (error.message) {
+                // 从math.js错误消息中提取有用信息
+                if (error.message.includes('undefined')) {
+                    errorMsg = '使用了未定义的函数或变量';
+                } else if (error.message.includes('parentheses')) {
+                    errorMsg = '括号不匹配';
+                } else {
+                    errorMsg = error.message.substring(0, 50);
+                }
+            }
+            
+            func.error = errorMsg;
+            
+            if (expressionInput) {
+                expressionInput.classList.add('error');
+            }
+            
+            if (errorElement) {
+                errorElement.textContent = errorMsg;
+            }
+            
+            return false;
+        }
+    },
+    
     // 更新函数表达式
     updateFunctionExpression: function(funcId, expression) {
         const func = this.functions.find(f => f.id === funcId);
         if (func) {
             func.expression = expression;
-            this.drawGraph();
+            
+            // 验证表达式
+            const isValid = this.validateFunctionExpression(funcId);
+            
+            // 只有当表达式有效或为空时才重绘
+            if (isValid || !expression.trim()) {
+                this.drawGraph();
+            }
         }
     },
     
@@ -280,6 +393,7 @@ const GraphApp = {
         this.xMax = 10;
         this.yMin = -10;
         this.yMax = 10;
+        this.zoomFactor = 1.0;
         
         document.getElementById('xMin').value = this.xMin;
         document.getElementById('xMax').value = this.xMax;
@@ -304,13 +418,102 @@ const GraphApp = {
             }
         });
         
-        document.getElementById('colorPickerModal').classList.add('active');
+        this.showModal('colorPickerModal');
     },
     
-    // 隐藏颜色选择器
-    hideColorPicker: function() {
-        document.getElementById('colorPickerModal').classList.remove('active');
-        this.colorPickerActiveFor = null;
+    // 显示使用说明
+    showHelp: function() {
+        this.showModal('helpModal');
+    },
+    
+    // 显示模态框
+    showModal: function(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    },
+    
+    // 隐藏模态框
+    hideModal: function(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+        
+        if (modalId === 'colorPickerModal') {
+            this.colorPickerActiveFor = null;
+        }
+    },
+    
+    // 处理鼠标滚轮缩放
+    handleZoom: function(e) {
+        e.preventDefault();
+        
+        // 获取鼠标位置对应的数学坐标
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // 转换为数学坐标
+        const mathX = this.xMin + (mouseX / this.canvas.width) * (this.xMax - this.xMin);
+        const mathY = this.yMax - (mouseY / this.canvas.height) * (this.yMax - this.yMin);
+        
+        // 计算缩放因子
+        const delta = e.deltaY > 0 ? 1 - this.zoomStep : 1 + this.zoomStep;
+        
+        // 应用缩放
+        this.xMin = mathX - (mathX - this.xMin) * delta;
+        this.xMax = mathX + (this.xMax - mathX) * delta;
+        this.yMin = mathY - (mathY - this.yMin) * delta;
+        this.yMax = mathY + (this.yMax - mathY) * delta;
+        
+        // 更新显示值
+        document.getElementById('xMin').value = this.xMin.toFixed(2);
+        document.getElementById('xMax').value = this.xMax.toFixed(2);
+        document.getElementById('yMin').value = this.yMin.toFixed(2);
+        document.getElementById('yMax').value = this.yMax.toFixed(2);
+        
+        // 更新缩放因子
+        this.zoomFactor *= delta;
+        
+        // 重绘图形
+        this.drawGraph();
+    },
+    
+    // 在中心点缩放
+    zoomAtCenter: function(factor) {
+        const centerX = (this.xMin + this.xMax) / 2;
+        const centerY = (this.yMin + this.yMax) / 2;
+        const rangeX = (this.xMax - this.xMin) / 2;
+        const rangeY = (this.yMax - this.yMin) / 2;
+        
+        this.xMin = centerX - rangeX / factor;
+        this.xMax = centerX + rangeX / factor;
+        this.yMin = centerY - rangeY / factor;
+        this.yMax = centerY + rangeY / factor;
+        
+        // 更新显示值
+        document.getElementById('xMin').value = this.xMin.toFixed(2);
+        document.getElementById('xMax').value = this.xMax.toFixed(2);
+        document.getElementById('yMin').value = this.yMin.toFixed(2);
+        document.getElementById('yMax').value = this.yMax.toFixed(2);
+        
+        // 更新缩放因子
+        this.zoomFactor *= factor;
+        
+        // 重绘图形
+        this.drawGraph();
+    },
+    
+    // 重置缩放
+    resetZoom: function() {
+        this.xMin = -10;
+        this.xMax = 10;
+        this.yMin = -10;
+        this.yMax = 10;
+        this.zoomFactor = 1.0;
+        
+        document.getElementById('xMin').value = this.xMin;
+        document.getElementById('xMax').value = this.xMax;
+        document.getElementById('yMin').value = this.yMin;
+        document.getElementById('yMax').value = this.yMax;
+        
+        this.drawGraph();
     },
     
     // 绘制图形
@@ -318,12 +521,16 @@ const GraphApp = {
         // 清除画布
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // 绘制白色背景
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
         // 绘制坐标系
         this.drawCoordinateSystem();
         
         // 绘制每个函数
         this.functions.forEach(func => {
-            if (func.enabled && func.expression.trim() !== '') {
+            if (func.enabled && func.expression.trim() !== '' && !func.error) {
                 this.plotFunction(func);
             }
         });
@@ -357,7 +564,7 @@ const GraphApp = {
             ctx.fillStyle = '#666';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(x.toFixed(1), toCanvasX(x), toCanvasY(-0.3));
+            ctx.fillText(x.toFixed(this.getDecimalPlaces(xStep)), toCanvasX(x), toCanvasY(-0.3));
         }
         
         // 水平网格线
@@ -374,7 +581,7 @@ const GraphApp = {
             ctx.fillStyle = '#666';
             ctx.font = '12px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText(y.toFixed(1), toCanvasX(-0.3), toCanvasY(y) + 4);
+            ctx.fillText(y.toFixed(this.getDecimalPlaces(yStep)), toCanvasX(-0.3), toCanvasY(y) + 4);
         }
         
         // 绘制坐标轴
@@ -431,8 +638,20 @@ const GraphApp = {
         if (range > 100) step = 20;
         if (range > 200) step = 50;
         if (range > 500) step = 100;
+        if (range < 2) step = 0.2;
+        if (range < 1) step = 0.1;
+        if (range < 0.2) step = 0.02;
+        if (range < 0.1) step = 0.01;
         
         return step;
+    },
+    
+    // 获取小数点后位数
+    getDecimalPlaces: function(num) {
+        if (num % 1 === 0) return 0;
+        const match = num.toString().match(/(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/);
+        if (!match) return 0;
+        return Math.max(0, (match[1] ? match[1].length : 0) - (match[2] ? +match[2] : 0));
     },
     
     // 绘制函数
@@ -463,7 +682,7 @@ const GraphApp = {
                 const y = math.evaluate(expr);
                 
                 // 检查y是否有效且在当前视图范围内
-                if (isFinite(y) && y >= this.yMin && y <= this.yMax) {
+                if (isFinite(y)) {
                     const canvasY = toCanvasY(y);
                     
                     if (isFirstPoint) {
@@ -516,15 +735,41 @@ const GraphApp = {
         tempCanvas.height = this.canvas.height * scale;
         const tempCtx = tempCanvas.getContext('2d');
         
+        // 填充白色背景
+        tempCtx.fillStyle = 'white';
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        
         // 缩放并绘制
         tempCtx.scale(scale, scale);
-        tempCtx.drawImage(this.canvas, 0, 0);
+        
+        // 重新绘制到临时画布
+        this.drawToCanvas(tempCtx, tempCanvas.width / scale, tempCanvas.height / scale);
         
         // 创建下载链接
         const link = document.createElement('a');
         link.download = `函数绘图_${new Date().toISOString().slice(0, 10)}.${format}`;
-        link.href = tempCanvas.toDataURL(`image/${format}`);
+        link.href = tempCanvas.toDataURL(`image/${format}`, 1.0);
         link.click();
+    },
+    
+    // 绘制到指定画布
+    drawToCanvas: function(ctx, width, height) {
+        // 保存原始画布尺寸
+        const originalWidth = this.canvas.width;
+        const originalHeight = this.canvas.height;
+        
+        // 临时替换为指定画布
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.ctx = ctx;
+        
+        // 绘制图形
+        this.drawGraph();
+        
+        // 恢复原始画布
+        this.canvas.width = originalWidth;
+        this.canvas.height = originalHeight;
+        this.ctx = this.canvas.getContext('2d');
     },
     
     // 获取随机颜色
