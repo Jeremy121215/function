@@ -3,326 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>函数绘图工具 - 类似Desmos</title>
+    <title>高级函数绘图工具</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
     <!-- 引入Math.js库用于表达式解析 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.6.0/math.min.js"></script>
     <!-- 引入Font Awesome图标 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入Sortable.js用于拖放排序 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-chart-line"></i> 函数绘图工具</h1>
-            <p class="subtitle">交互式函数绘图器</p>
-        </header>
-
-        <div class="app-content">
-            <div class="sidebar">
-                <div class="functions-list">
-                    <h2><i class="fas fa-functions"></i> 函数列表</h2>
-                    <div class="function-controls">
-                        <button id="addFunctionBtn" class="btn-primary">
-                            <i class="fas fa-plus-circle"></i> 添加函数
-                        </button>
-                        <button id="clearAllBtn" class="btn-secondary">
-                            <i class="fas fa-trash-alt"></i> 清除所有
-                        </button>
-                        <button id="helpBtn" class="btn-secondary">
-                            <i class="fas fa-question-circle"></i> 使用说明
-                        </button>
-                    </div>
-                    <div id="functionsContainer" class="functions-container">
-                        <!-- 函数项将在这里动态添加 -->
-                        <div class="function-item empty-state">
-                            <p>点击"添加函数"开始绘图</p>
-                        </div>
+    <!-- 主界面容器 -->
+    <div class="app-container">
+        <!-- 折叠/展开按钮 -->
+        <button id="toggleSidebar" class="sidebar-toggle">
+            <i class="fas fa-chevron-right" id="toggleIcon"></i>
+        </button>
+        
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebar">
+            <!-- 标题和基本操作 -->
+            <div class="sidebar-header">
+                <h1><i class="fas fa-chart-line"></i> 函数绘图</h1>
+                <div class="quick-actions">
+                    <button id="addFunctionBtn" class="btn-primary" title="添加函数">
+                        <i class="fas fa-plus"></i> 添加
+                    </button>
+                    <button id="batchDeleteBtn" class="btn-secondary" title="批量删除">
+                        <i class="fas fa-trash"></i> 批量
+                    </button>
+                    <button id="settingsBtn" class="btn-secondary" title="设置">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 选项卡导航 -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="functions">函数</button>
+                <button class="tab-btn" data-tab="variables">变量</button>
+                <button class="tab-btn" data-tab="table">表格</button>
+                <button class="tab-btn" data-tab="help">帮助</button>
+            </div>
+            
+            <!-- 函数选项卡 -->
+            <div class="tab-content active" id="functions-tab">
+                <div class="functions-list" id="functionsList">
+                    <!-- 函数项将在这里动态添加 -->
+                    <div class="empty-state">
+                        <p>点击"添加"按钮创建第一个函数</p>
                     </div>
                 </div>
-
-                <div class="zoom-info">
-                    <h3><i class="fas fa-search"></i> 缩放控制</h3>
-                    <p>在图形区域使用鼠标滚轮进行缩放</p>
-                    <div class="zoom-controls">
-                        <button id="zoomInBtn" class="btn-zoom">
-                            <i class="fas fa-search-plus"></i> 放大
-                        </button>
-                        <button id="zoomOutBtn" class="btn-zoom">
-                            <i class="fas fa-search-minus"></i> 缩小
-                        </button>
-                        <button id="resetZoomBtn" class="btn-zoom">
-                            <i class="fas fa-expand-arrows-alt"></i> 重置
-                        </button>
+                <div class="batch-controls" id="batchControls">
+                    <div class="batch-select-all">
+                        <input type="checkbox" id="selectAllFunctions">
+                        <label for="selectAllFunctions">全选</label>
+                    </div>
+                    <button id="deleteSelectedBtn" class="btn-danger">
+                        <i class="fas fa-trash"></i> 删除选中
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 变量选项卡 -->
+            <div class="tab-content" id="variables-tab">
+                <div class="variable-controls">
+                    <button id="addConstantBtn" class="btn-primary">
+                        <i class="fas fa-plus"></i> 添加常数
+                    </button>
+                    <button id="addSliderBtn" class="btn-primary">
+                        <i class="fas fa-sliders-h"></i> 添加滑块
+                    </button>
+                </div>
+                <div class="variables-list" id="variablesList">
+                    <div class="empty-state">
+                        <p>尚未定义任何变量</p>
+                        <p class="small">常数和滑块变量可以在函数表达式中使用</p>
                     </div>
                 </div>
             </div>
-
-            <div class="main-content">
-                <div class="graph-controls">
+            
+            <!-- 表格选项卡 -->
+            <div class="tab-content" id="table-tab">
+                <div class="table-controls">
                     <div class="control-group">
-                        <label for="xMin">X 最小值:</label>
-                        <input type="number" id="xMin" value="-10" step="1">
+                        <label for="tableFunction">函数:</label>
+                        <select id="tableFunction">
+                            <option value="">选择函数</option>
+                        </select>
                     </div>
                     <div class="control-group">
-                        <label for="xMax">X 最大值:</label>
-                        <input type="number" id="xMax" value="10" step="1">
+                        <label for="tableStart">起始:</label>
+                        <input type="number" id="tableStart" value="-5" step="0.5">
                     </div>
                     <div class="control-group">
-                        <label for="yMin">Y 最小值:</label>
-                        <input type="number" id="yMin" value="-10" step="1">
+                        <label for="tableEnd">结束:</label>
+                        <input type="number" id="tableEnd" value="5" step="0.5">
                     </div>
                     <div class="control-group">
-                        <label for="yMax">Y 最大值:</label>
-                        <input type="number" id="yMax" value="10" step="1">
+                        <label for="tableStep">步长:</label>
+                        <input type="number" id="tableStep" value="1" step="0.1" min="0.1">
                     </div>
-                    <div class="control-group">
-                        <button id="resetViewBtn" class="btn-secondary">
-                            <i class="fas fa-sync-alt"></i> 重置视图
-                        </button>
-                    </div>
-                </div>
-
-                <div class="canvas-container">
-                    <canvas id="graphCanvas" width="800" height="600"></canvas>
-                    <div class="canvas-overlay" id="coordinates">(0, 0)</div>
-                </div>
-
-                <div class="export-controls">
-                    <button id="exportBtn" class="btn-primary">
-                        <i class="fas fa-download"></i> 保存图像
+                    <button id="generateTableBtn" class="btn-primary">
+                        <i class="fas fa-table"></i> 生成表格
                     </button>
-                    <div class="export-options">
-                        <label for="imageFormat">格式:</label>
-                        <select id="imageFormat">
-                            <option value="png">PNG</option>
-                            <option value="jpeg">JPEG</option>
-                        </select>
-                        <label for="imageScale">缩放:</label>
-                        <select id="imageScale">
-                            <option value="1">1x</option>
-                            <option value="2">2x</option>
-                            <option value="3">3x</option>
-                        </select>
+                </div>
+                <div class="table-results">
+                    <div class="table-header">
+                        <span class="table-col">x</span>
+                        <span class="table-col">f(x)</span>
+                    </div>
+                    <div class="table-body" id="tableBody">
+                        <div class="empty-state">
+                            <p>选择函数并点击"生成表格"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 帮助选项卡 -->
+            <div class="tab-content" id="help-tab">
+                <div class="help-content">
+                    <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+                    
+                    <div class="help-section">
+                        <h4>基本操作</h4>
+                        <ul>
+                            <li><strong>平移视图</strong>: 按住鼠标左键拖动</li>
+                            <li><strong>缩放视图</strong>: 使用鼠标滚轮或触摸屏双指缩放</li>
+                            <li><strong>1:1比例</strong>: x轴和y轴保持相同缩放比例</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>数学表达式语法</h4>
+                        <p>支持以下运算符和函数：</p>
+                        <div class="syntax-grid">
+                            <div class="syntax-item">
+                                <code>+, -, *, /</code>
+                                <span>基本运算</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>^</code>
+                                <span>幂运算</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>sqrt(x)</code>
+                                <span>平方根</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>abs(x)</code>
+                                <span>绝对值</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>sin(x), cos(x), tan(x)</code>
+                                <span>三角函数</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>log(x), ln(x)</code>
+                                <span>对数函数</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>pi, e</code>
+                                <span>常数</span>
+                            </div>
+                            <div class="syntax-item">
+                                <code>2x</code>
+                                <span>隐式乘法(2*x)</span>
+                            </div>
+                        </div>
+                        
+                        <h5>KaTeX数学表达式</h5>
+                        <p>在表达式中可以使用KaTeX语法：</p>
+                        <ul>
+                            <li><code>\frac{1}{2}</code> 表示分数</li>
+                            <li><code>\sqrt{x}</code> 表示平方根</li>
+                            <li><code>x^{2}</code> 表示幂运算</li>
+                            <li><code>\sin(x)</code> 表示三角函数</li>
+                        </ul>
+                        <p>示例: <code>\frac{x^2}{2} + \sin(2\pi x)</code></p>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>变量与条件</h4>
+                        <ul>
+                            <li><strong>常数变量</strong>: 定义固定值，如 a = 3</li>
+                            <li><strong>滑块变量</strong>: 可调整的变量，有最小/最大值</li>
+                            <li><strong>限制条件</strong>: 为函数添加条件，如 x>0</li>
+                            <li>变量可以在所有函数表达式中使用</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>自动补全</h4>
+                        <p>输入函数名称时，会自动显示匹配的函数列表，按Tab键或点击选择自动补全。</p>
                     </div>
                 </div>
             </div>
         </div>
-
-        <footer>
-            <p>函数绘图工具 &copy; 2023 | 支持代数式、三角函数、绝对值、幂运算、根号、阶乘等</p>
-        </footer>
+        
+        <!-- 主画布区域 -->
+        <div class="main-canvas-container">
+            <canvas id="graphCanvas"></canvas>
+            
+            <!-- 画布控制覆盖层 -->
+            <div class="canvas-overlay">
+                <div class="coordinate-display" id="coordinates">(0, 0)</div>
+                <div class="zoom-display">
+                    缩放: <span id="zoomLevel">1.00x</span>
+                </div>
+                <div class="quick-tools">
+                    <button id="resetViewBtn" class="btn-overlay" title="重置视图">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    <button id="exportBtn" class="btn-overlay" title="保存图像">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button id="fullscreenBtn" class="btn-overlay" title="全屏">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- 颜色选择器模态框 -->
-    <div id="colorPickerModal" class="modal">
+    
+    <!-- 设置模态框 -->
+    <div id="settingsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>选择颜色</h3>
+                <h3><i class="fas fa-cog"></i> 设置</h3>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
-                <div class="color-palette">
-                    <div class="color-option" style="background-color: #FF3B30;" data-color="#FF3B30"></div>
-                    <div class="color-option" style="background-color: #4CD964;" data-color="#4CD964"></div>
-                    <div class="color-option" style="background-color: #007AFF;" data-color="#007AFF"></div>
-                    <div class="color-option" style="background-color: #5856D6;" data-color="#5856D6"></div>
-                    <div class="color-option" style="background-color: #FF9500;" data-color="#FF9500"></div>
-                    <div class="color-option" style="background-color: #FF2D55;" data-color="#FF2D55"></div>
-                    <div class="color-option" style="background-color: #8E8E93;" data-color="#8E8E93"></div>
-                    <div class="color-option" style="background-color: #5AC8FA;" data-color="#5AC8FA"></div>
-                </div>
-                <div class="custom-color">
-                    <label for="customColorInput">自定义颜色:</label>
-                    <input type="color" id="customColorInput" value="#FF3B30">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="confirmColorBtn" class="btn-primary">确认</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 使用说明模态框 -->
-    <div id="helpModal" class="modal">
-        <div class="modal-content help-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-info-circle"></i> 使用说明与支持的运算符/函数</h3>
-                <span class="close-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="help-section">
-                    <h4><i class="fas fa-keyboard"></i> 基本操作</h4>
-                    <ul>
-                        <li>点击"添加函数"按钮创建新的函数表达式</li>
-                        <li>输入数学表达式后按回车或点击其他地方自动更新图形</li>
-                        <li>点击颜色方块可以自定义函数颜色</li>
-                        <li>在图形区域使用鼠标滚轮进行缩放</li>
-                        <li>鼠标移动到图形区域可查看当前坐标</li>
-                    </ul>
-                </div>
-                
-                <div class="help-section">
-                    <h4><i class="fas fa-calculator"></i> 基本运算符</h4>
-                    <div class="operator-grid">
-                        <div class="operator-item">
-                            <span class="operator-symbol">+</span>
-                            <span class="operator-desc">加法</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">-</span>
-                            <span class="operator-desc">减法</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">*</span>
-                            <span class="operator-desc">乘法</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">/</span>
-                            <span class="operator-desc">除法</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">^</span>
-                            <span class="operator-desc">幂运算</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">%</span>
-                            <span class="operator-desc">百分比</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">!</span>
-                            <span class="operator-desc">阶乘</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">( )</span>
-                            <span class="operator-desc">括号</span>
-                        </div>
+                <div class="settings-section">
+                    <h4><i class="fas fa-language"></i> 语言设置</h4>
+                    <div class="setting-item">
+                        <label for="languageSelect">界面语言:</label>
+                        <select id="languageSelect">
+                            <option value="zh-CN">简体中文</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="errorLanguage">错误信息语言:</label>
+                        <select id="errorLanguage">
+                            <option value="zh-CN">中文</option>
+                            <option value="en">英文</option>
+                        </select>
                     </div>
                 </div>
                 
-                <div class="help-section">
-                    <h4><i class="fas fa-superscript"></i> 比较运算符</h4>
-                    <div class="operator-grid">
-                        <div class="operator-item">
-                            <span class="operator-symbol">=</span>
-                            <span class="operator-desc">等于</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">&lt;</span>
-                            <span class="operator-desc">小于</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">&gt;</span>
-                            <span class="operator-desc">大于</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">&lt;=</span>
-                            <span class="operator-desc">小于等于</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">&gt;=</span>
-                            <span class="operator-desc">大于等于</span>
-                        </div>
+                <div class="settings-section">
+                    <h4><i class="fas fa-chart-area"></i> 图形设置</h4>
+                    <div class="setting-item">
+                        <label for="gridDensity">网格密度:</label>
+                        <select id="gridDensity">
+                            <option value="low">低</option>
+                            <option value="medium" selected>中</option>
+                            <option value="high">高</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="axisLabels">坐标轴标签:</label>
+                        <input type="checkbox" id="axisLabels" checked>
+                    </div>
+                    <div class="setting-item">
+                        <label for="showGrid">显示网格:</label>
+                        <input type="checkbox" id="showGrid" checked>
                     </div>
                 </div>
                 
-                <div class="help-section">
-                    <h4><i class="fas fa-square-root-alt"></i> 数学函数</h4>
-                    <div class="function-grid">
-                        <div class="function-item">
-                            <code>sin(x)</code>
-                            <span>正弦函数</span>
-                        </div>
-                        <div class="function-item">
-                            <code>cos(x)</code>
-                            <span>余弦函数</span>
-                        </div>
-                        <div class="function-item">
-                            <code>tan(x)</code>
-                            <span>正切函数</span>
-                        </div>
-                        <div class="function-item">
-                            <code>asin(x)</code>
-                            <span>反正弦</span>
-                        </div>
-                        <div class="function-item">
-                            <code>acos(x)</code>
-                            <span>反余弦</span>
-                        </div>
-                        <div class="function-item">
-                            <code>atan(x)</code>
-                            <span>反正切</span>
-                        </div>
-                        <div class="function-item">
-                            <code>abs(x)</code>
-                            <span>绝对值</span>
-                        </div>
-                        <div class="function-item">
-                            <code>sqrt(x)</code>
-                            <span>平方根</span>
-                        </div>
-                        <div class="function-item">
-                            <code>log(x)</code>
-                            <span>对数(以10为底)</span>
-                        </div>
-                        <div class="function-item">
-                            <code>ln(x)</code>
-                            <span>自然对数</span>
-                        </div>
-                        <div class="function-item">
-                            <code>exp(x)</code>
-                            <span>指数函数</span>
-                        </div>
-                        <div class="function-item">
-                            <code>ceil(x)</code>
-                            <span>向上取整</span>
-                        </div>
-                        <div class="function-item">
-                            <code>floor(x)</code>
-                            <span>向下取整</span>
-                        </div>
-                        <div class="function-item">
-                            <code>round(x)</code>
-                            <span>四舍五入</span>
-                        </div>
+                <div class="settings-section">
+                    <h4><i class="fas fa-sliders-h"></i> 交互设置</h4>
+                    <div class="setting-item">
+                        <label for="zoomSensitivity">缩放灵敏度:</label>
+                        <input type="range" id="zoomSensitivity" min="0.1" max="2" step="0.1" value="1">
+                        <span id="zoomSensitivityValue">1.0</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="dragSensitivity">拖动灵敏度:</label>
+                        <input type="range" id="dragSensitivity" min="0.5" max="2" step="0.1" value="1">
+                        <span id="dragSensitivityValue">1.0</span>
                     </div>
                 </div>
                 
-                <div class="help-section">
-                    <h4><i class="fas fa-infinity"></i> 常数与符号</h4>
-                    <div class="operator-grid">
-                        <div class="operator-item">
-                            <span class="operator-symbol">pi</span>
-                            <span class="operator-desc">圆周率 π ≈ 3.14159</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">e</span>
-                            <span class="operator-desc">自然常数 ≈ 2.71828</span>
-                        </div>
-                        <div class="operator-item">
-                            <span class="operator-symbol">x</span>
-                            <span class="operator-desc">变量</span>
-                        </div>
+                <div class="settings-section">
+                    <h4><i class="fas fa-paint-brush"></i> 外观设置</h4>
+                    <div class="setting-item">
+                        <label for="themeSelect">主题:</label>
+                        <select id="themeSelect">
+                            <option value="light">浅色</option>
+                            <option value="dark">深色</option>
+                        </select>
                     </div>
-                </div>
-                
-                <div class="help-section">
-                    <h4><i class="fas fa-lightbulb"></i> 表达式示例</h4>
-                    <div class="examples">
-                        <p><code>2*x + 3</code> - 线性函数</p>
-                        <p><code>x^2 - 4*x + 4</code> - 二次函数</p>
-                        <p><code>sin(x) + cos(2*x)</code> - 三角函数组合</p>
-                        <p><code>sqrt(x^2 + 1)</code> - 平方根函数</p>
-                        <p><code>abs(x-3)</code> - 绝对值函数</p>
-                        <p><code>log(x)/log(2)</code> - 以2为底的对数</p>
+                    <div class="setting-item">
+                        <label for="lineWidth">线条宽度:</label>
+                        <input type="range" id="lineWidth" min="1" max="5" step="0.5" value="2">
+                        <span id="lineWidthValue">2</span>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="closeHelpBtn" class="btn-primary">关闭</button>
+                <button id="saveSettingsBtn" class="btn-primary">保存设置</button>
+                <button id="resetSettingsBtn" class="btn-secondary">恢复默认</button>
             </div>
         </div>
     </div>
-
+    
+    <!-- 颜色选择器模态框 -->
+    <div id="colorPickerModal" class="modal">
+        <!-- 颜色选择器内容 -->
+    </div>
+    
+    <!-- 变量编辑模态框 -->
+    <div id="variableModal" class="modal">
+        <!-- 变量编辑内容 -->
+    </div>
+    
+    <!-- 条件编辑模态框 -->
+    <div id="conditionModal" class="modal">
+        <!-- 条件编辑内容 -->
+    </div>
+    
+    <!-- 自动补全浮窗 -->
+    <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+    
+    <!-- 加载KaTeX库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
