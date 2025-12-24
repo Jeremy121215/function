@@ -81,6 +81,7 @@ header h1 i {
 
 .function-controls {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 20px;
 }
@@ -112,6 +113,11 @@ header h1 i {
     margin-bottom: 10px;
 }
 
+.function-label {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
 .function-color {
     width: 24px;
     height: 24px;
@@ -119,6 +125,15 @@ header h1 i {
     cursor: pointer;
     border: 2px solid white;
     box-shadow: 0 0 0 1px #ddd;
+    transition: transform 0.2s;
+}
+
+.function-color:hover {
+    transform: scale(1.1);
+}
+
+.function-input-container {
+    margin-bottom: 5px;
 }
 
 .function-expression {
@@ -127,7 +142,6 @@ header h1 i {
     border: 1px solid #ddd;
     border-radius: 6px;
     font-size: 1rem;
-    margin-bottom: 10px;
     font-family: 'Consolas', monospace;
 }
 
@@ -137,9 +151,21 @@ header h1 i {
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
+.function-expression.error {
+    border-color: #ff6b6b;
+}
+
+.error-message {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    min-height: 20px;
+}
+
 .function-actions {
     display: flex;
     justify-content: space-between;
+    margin-top: 10px;
 }
 
 .function-actions button {
@@ -151,6 +177,7 @@ header h1 i {
     display: flex;
     align-items: center;
     gap: 5px;
+    transition: all 0.2s;
 }
 
 .function-actions button i {
@@ -183,43 +210,50 @@ header h1 i {
     border-left-color: #bdc3c7;
 }
 
-/* 说明区域样式 */
-.instructions {
+/* 缩放信息区域样式 */
+.zoom-info {
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     padding: 20px;
 }
 
-.instructions h3 {
+.zoom-info h3 {
     color: #2c3e50;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     font-size: 1.3rem;
     display: flex;
     align-items: center;
 }
 
-.instructions h3 i {
+.zoom-info h3 i {
     margin-right: 10px;
     color: #2ecc71;
 }
 
-.instructions ul {
-    padding-left: 20px;
-}
-
-.instructions li {
-    margin-bottom: 8px;
+.zoom-info p {
     color: #555;
+    margin-bottom: 15px;
+    font-size: 0.95rem;
 }
 
-.instructions code {
+.zoom-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-zoom {
+    flex: 1;
+    padding: 8px 12px;
     background-color: #f1f3f4;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Consolas', monospace;
+    color: #2c3e50;
+    border: 1px solid #ddd;
+    border-radius: 6px;
     font-size: 0.9rem;
-    color: #d63384;
+}
+
+.btn-zoom:hover {
+    background-color: #e1e5eb;
 }
 
 /* 主内容区域样式 */
@@ -278,12 +312,14 @@ header h1 i {
     align-items: center;
     justify-content: center;
     min-height: 500px;
+    cursor: crosshair;
 }
 
 #graphCanvas {
     display: block;
     max-width: 100%;
     max-height: 100%;
+    background-color: white;
 }
 
 .canvas-overlay {
@@ -297,6 +333,7 @@ header h1 i {
     font-family: 'Consolas', monospace;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     pointer-events: none;
+    z-index: 10;
 }
 
 /* 导出控制样式 */
@@ -406,6 +443,9 @@ footer {
     max-width: 450px;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
@@ -419,6 +459,12 @@ footer {
 
 .modal-header h3 {
     color: #2c3e50;
+    display: flex;
+    align-items: center;
+}
+
+.modal-header h3 i {
+    margin-right: 10px;
 }
 
 .close-modal {
@@ -433,6 +479,8 @@ footer {
 
 .modal-body {
     padding: 25px 20px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .color-palette {
@@ -486,6 +534,103 @@ footer {
     text-align: right;
 }
 
+/* 使用说明模态框样式 */
+.help-content {
+    max-width: 800px;
+}
+
+.help-section {
+    margin-bottom: 25px;
+}
+
+.help-section h4 {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+}
+
+.help-section h4 i {
+    margin-right: 10px;
+    width: 20px;
+    color: #3498db;
+}
+
+.help-section ul {
+    padding-left: 20px;
+    margin-bottom: 15px;
+}
+
+.help-section li {
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.operator-grid, .function-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.operator-item, .function-item {
+    background-color: #f1f3f4;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.operator-symbol {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-family: 'Consolas', monospace;
+}
+
+.operator-desc {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.function-item code {
+    background-color: #2c3e50;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    font-family: 'Consolas', monospace;
+}
+
+.function-item span {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.examples {
+    background-color: #f1f3f4;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.examples p {
+    margin-bottom: 8px;
+    font-family: 'Consolas', monospace;
+    color: #2c3e50;
+}
+
+.examples code {
+    background-color: #e1e5eb;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #d63384;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
     .app-content {
@@ -523,5 +668,9 @@ footer {
     
     header h1 {
         font-size: 2rem;
+    }
+    
+    .operator-grid, .function-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
 }
