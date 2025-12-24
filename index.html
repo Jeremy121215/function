@@ -14,7 +14,7 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-chart-line"></i> 函数绘图工具</h1>
-            <p class="subtitle">类似Desmos的交互式函数绘图器</p>
+            <p class="subtitle">交互式函数绘图器</p>
         </header>
 
         <div class="app-content">
@@ -28,6 +28,9 @@
                         <button id="clearAllBtn" class="btn-secondary">
                             <i class="fas fa-trash-alt"></i> 清除所有
                         </button>
+                        <button id="helpBtn" class="btn-secondary">
+                            <i class="fas fa-question-circle"></i> 使用说明
+                        </button>
                     </div>
                     <div id="functionsContainer" class="functions-container">
                         <!-- 函数项将在这里动态添加 -->
@@ -37,16 +40,20 @@
                     </div>
                 </div>
 
-                <div class="instructions">
-                    <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
-                    <ul>
-                        <li>输入数学表达式，例如: <code>2*x + 3</code></li>
-                        <li>支持函数: sin, cos, tan, log, sqrt, abs 等</li>
-                        <li>支持运算符: +, -, *, /, ^, !, %</li>
-                        <li>支持常数: pi, e</li>
-                        <li>示例: <code>sin(x)^2 + cos(x)^2</code></li>
-                        <li>点击颜色方块可以自定义函数颜色</li>
-                    </ul>
+                <div class="zoom-info">
+                    <h3><i class="fas fa-search"></i> 缩放控制</h3>
+                    <p>在图形区域使用鼠标滚轮进行缩放</p>
+                    <div class="zoom-controls">
+                        <button id="zoomInBtn" class="btn-zoom">
+                            <i class="fas fa-search-plus"></i> 放大
+                        </button>
+                        <button id="zoomOutBtn" class="btn-zoom">
+                            <i class="fas fa-search-minus"></i> 缩小
+                        </button>
+                        <button id="resetZoomBtn" class="btn-zoom">
+                            <i class="fas fa-expand-arrows-alt"></i> 重置
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -131,6 +138,187 @@
             </div>
             <div class="modal-footer">
                 <button id="confirmColorBtn" class="btn-primary">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用说明模态框 -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content help-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> 使用说明与支持的运算符/函数</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h4><i class="fas fa-keyboard"></i> 基本操作</h4>
+                    <ul>
+                        <li>点击"添加函数"按钮创建新的函数表达式</li>
+                        <li>输入数学表达式后按回车或点击其他地方自动更新图形</li>
+                        <li>点击颜色方块可以自定义函数颜色</li>
+                        <li>在图形区域使用鼠标滚轮进行缩放</li>
+                        <li>鼠标移动到图形区域可查看当前坐标</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h4><i class="fas fa-calculator"></i> 基本运算符</h4>
+                    <div class="operator-grid">
+                        <div class="operator-item">
+                            <span class="operator-symbol">+</span>
+                            <span class="operator-desc">加法</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">-</span>
+                            <span class="operator-desc">减法</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">*</span>
+                            <span class="operator-desc">乘法</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">/</span>
+                            <span class="operator-desc">除法</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">^</span>
+                            <span class="operator-desc">幂运算</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">%</span>
+                            <span class="operator-desc">百分比</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">!</span>
+                            <span class="operator-desc">阶乘</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">( )</span>
+                            <span class="operator-desc">括号</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h4><i class="fas fa-superscript"></i> 比较运算符</h4>
+                    <div class="operator-grid">
+                        <div class="operator-item">
+                            <span class="operator-symbol">=</span>
+                            <span class="operator-desc">等于</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">&lt;</span>
+                            <span class="operator-desc">小于</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">&gt;</span>
+                            <span class="operator-desc">大于</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">&lt;=</span>
+                            <span class="operator-desc">小于等于</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">&gt;=</span>
+                            <span class="operator-desc">大于等于</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h4><i class="fas fa-square-root-alt"></i> 数学函数</h4>
+                    <div class="function-grid">
+                        <div class="function-item">
+                            <code>sin(x)</code>
+                            <span>正弦函数</span>
+                        </div>
+                        <div class="function-item">
+                            <code>cos(x)</code>
+                            <span>余弦函数</span>
+                        </div>
+                        <div class="function-item">
+                            <code>tan(x)</code>
+                            <span>正切函数</span>
+                        </div>
+                        <div class="function-item">
+                            <code>asin(x)</code>
+                            <span>反正弦</span>
+                        </div>
+                        <div class="function-item">
+                            <code>acos(x)</code>
+                            <span>反余弦</span>
+                        </div>
+                        <div class="function-item">
+                            <code>atan(x)</code>
+                            <span>反正切</span>
+                        </div>
+                        <div class="function-item">
+                            <code>abs(x)</code>
+                            <span>绝对值</span>
+                        </div>
+                        <div class="function-item">
+                            <code>sqrt(x)</code>
+                            <span>平方根</span>
+                        </div>
+                        <div class="function-item">
+                            <code>log(x)</code>
+                            <span>对数(以10为底)</span>
+                        </div>
+                        <div class="function-item">
+                            <code>ln(x)</code>
+                            <span>自然对数</span>
+                        </div>
+                        <div class="function-item">
+                            <code>exp(x)</code>
+                            <span>指数函数</span>
+                        </div>
+                        <div class="function-item">
+                            <code>ceil(x)</code>
+                            <span>向上取整</span>
+                        </div>
+                        <div class="function-item">
+                            <code>floor(x)</code>
+                            <span>向下取整</span>
+                        </div>
+                        <div class="function-item">
+                            <code>round(x)</code>
+                            <span>四舍五入</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h4><i class="fas fa-infinity"></i> 常数与符号</h4>
+                    <div class="operator-grid">
+                        <div class="operator-item">
+                            <span class="operator-symbol">pi</span>
+                            <span class="operator-desc">圆周率 π ≈ 3.14159</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">e</span>
+                            <span class="operator-desc">自然常数 ≈ 2.71828</span>
+                        </div>
+                        <div class="operator-item">
+                            <span class="operator-symbol">x</span>
+                            <span class="operator-desc">变量</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h4><i class="fas fa-lightbulb"></i> 表达式示例</h4>
+                    <div class="examples">
+                        <p><code>2*x + 3</code> - 线性函数</p>
+                        <p><code>x^2 - 4*x + 4</code> - 二次函数</p>
+                        <p><code>sin(x) + cos(2*x)</code> - 三角函数组合</p>
+                        <p><code>sqrt(x^2 + 1)</code> - 平方根函数</p>
+                        <p><code>abs(x-3)</code> - 绝对值函数</p>
+                        <p><code>log(x)/log(2)</code> - 以2为底的对数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeHelpBtn" class="btn-primary">关闭</button>
             </div>
         </div>
     </div>
